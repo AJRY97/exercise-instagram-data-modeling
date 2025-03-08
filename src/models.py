@@ -1,29 +1,54 @@
 import os
 import sys
-from sqlalchemy.orm import declarative_base, Mapped, mapped_column
-from sqlalchemy import create_engine
+import enum
+from sqlalchemy.orm import declarative_base, Mapped, mapped_column, relationship
+from sqlalchemy import create_engine, ForeignKey, Enum
 from eralchemy2 import render_er
 
 Base = declarative_base()
 
-class Person(Base):
-    __tablename__ = 'person'
-    # Here we define columns for the table person
-    # Notice that each column is also a normal Python instance attribute.
+class User(Base):
+    __tablename__ = 'user'
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(nullable=False)
+    username: Mapped[str] = mapped_column(nullable=False, unique=True)
+    firstname: Mapped[str] = mapped_column(nullable=False)
+    lastname: Mapped[str] = mapped_column(nullable=False)
+    email: Mapped[str] = mapped_column(nullable=False)
+    comment = relationship('comment')
+    post = relationship('post')
+    follower = relationship('follower')
 
-class Address(Base):
-    __tablename__ = 'address'
-    # Here we define columns for the table address.
-    # Notice that each column is also a normal Python instance attribute.
+class Comment(Base):
+    __tablename__ = 'comment'
     id: Mapped[int] = mapped_column(primary_key=True)
-    street_name: Mapped[str]
-    street_number: Mapped[str]
-    post_code: Mapped[str] = mapped_column(nullable=False)
+    comment_text: Mapped[str] = mapped_column(nullable=False)
+    author_id: Mapped[int] = mapped_column(ForeignKey('user.id'))
+    post_id: Mapped[int] = mapped_column(ForeignKey('post.id'))
 
-    def to_dict(self):
-        return {}
+
+class Post(Base):
+    __tablename__ = 'post'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    comment = relationship('comment')
+    media = relationship('media')
+    user_id: Mapped[int] = mapped_column(ForeignKey('user.id'))
+
+class MediaType(enum.Enum):
+    IMAGE = "image"
+    VIDEO = "video"
+    AUDIO = "audio"
+
+class Media(Base):
+    __tablename__ = 'media'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    type: Mapped[MediaType] = mapped_column(Enum(MediaType), nullable=False)
+    url: Mapped[str] = mapped_column(nullable=False)
+    post_id: Mapped[int] = mapped_column(ForeignKey('post.id'))
+    
+class Follower(Base):
+    __tablename__ = 'follower'
+    user_from_id: Mapped[int] = mapped_column(ForeignKey('user.id'), primary_key=True)
+    user_to_id: Mapped[int] = mapped_column(ForeignKey('user.id'), primary_key=True)
 
 ## Draw from SQLAlchemy base
 try:
